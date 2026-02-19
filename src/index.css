@@ -1,0 +1,26 @@
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities; */
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #ffffff; /* studio blanc */
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Green Screen */
+body.greenScreen {
+  background: #00ff00 !important;
+}
