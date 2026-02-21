@@ -12,7 +12,7 @@
 //   RETRY_DELAY: 1000, // 1 seconde
 // };
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:3000/api",
+  BASE_URL: "https://backend-production-2d3fd.up.railway.app/api", //import.meta.env.VITE_API_URL || "http://localhost:3000/api",
   ENDPOINTS: {
     CHAT: "/chat",
     HEALTH: "/health",
