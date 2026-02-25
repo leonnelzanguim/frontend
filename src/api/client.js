@@ -656,6 +656,108 @@ class ApiClient {
   }
 
   /**
+   * Requête POST avec lecture du flux SSE (Server-Sent Events).
+   * Utilisé pour le endpoint /api/chat qui répond en deux phases (text puis audio).
+   *
+   * Le pattern buffer.split('\n\n') + parts.pop() gère correctement les chunks TCP
+   * qui coupent un événement SSE en plein milieu (notamment le payload base64 ~300KB).
+   *
+   * @param {string} endpoint - Endpoint de l'API (ex: '/chat')
+   * @param {Object} data - Données à envoyer en JSON
+   * @param {Object} callbacks - { onEvent, onError, onDone }
+   * @param {Function} callbacks.onEvent - Appelé pour chaque événement SSE : ({ eventName, payload })
+   * @param {Function} callbacks.onError - Appelé en cas d'erreur réseau ou SSE : (message)
+   * @param {Function} callbacks.onDone  - Appelé quand l'événement 'done' est reçu
+   */
+  async streamPost(endpoint, data = {}, callbacks = {}) {
+    const { onEvent, onError, onDone } = callbacks;
+    const url = `${this.baseURL}${endpoint}`;
+
+    let response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: { ...this.defaultHeaders },
+        body: JSON.stringify(data),
+        // Pas de signal AbortController : les connexions SSE sont longues par nature
+      });
+    } catch (networkError) {
+      console.error("[ApiClient] streamPost network error:", networkError);
+      onError?.(networkError.message || "Network error");
+      return;
+    }
+
+    if (!response.ok) {
+      let errorMsg = `HTTP ${response.status}`;
+      try {
+        const text = await response.text();
+        const parsed = JSON.parse(text);
+        errorMsg = parsed.message || parsed.error || errorMsg;
+      } catch {
+        // Impossible de parser — garder le message HTTP générique
+      }
+      console.error("[ApiClient] streamPost HTTP error:", errorMsg);
+      onError?.(errorMsg);
+      return;
+    }
+
+    // Lecture du ReadableStream SSE
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Séparer les événements SSE complets (délimités par \n\n)
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop(); // garder le fragment incomplet pour le prochain chunk
+
+        for (const part of parts) {
+          if (!part.trim()) continue;
+
+          // Parser les lignes "event: ..." et "data: ..."
+          const lines = part.split("\n");
+          let eventName = "";
+          let dataStr = "";
+
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              eventName = line.slice(7).trim();
+            } else if (line.startsWith("data: ")) {
+              dataStr = line.slice(6);
+            }
+          }
+
+          if (!eventName || !dataStr) continue;
+
+          let payload;
+          try {
+            payload = JSON.parse(dataStr);
+          } catch {
+            console.warn("[ApiClient] Failed to parse SSE data:", dataStr.substring(0, 100));
+            continue;
+          }
+
+          if (eventName === "done") {
+            onDone?.();
+          } else if (eventName === "error") {
+            onError?.(payload.message || "Stream error");
+          } else {
+            onEvent?.({ eventName, payload });
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  /**
    * Modifie l'URL de base
    * @param {string} baseURL - Nouvelle URL de base
    */

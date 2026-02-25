@@ -42,7 +42,7 @@ export function Avatar(props) {
     return currentMessage?.lipsync || null;
   }, [currentMessage]);
 
-  const audioBase64 = currentMessage?.audio || "";
+  const audioBase64 = currentMessage?.audio || null;
   const { audio, isPlaying } = useAudio(audioBase64, onMessagePlayed);
 
   const group = useRef();
