@@ -50,6 +50,40 @@ export const sendAudioMessage = async (audioBase64) => {
 };
 
 /**
+ * Envoyer un message texte via SSE (deux phases : text puis audio)
+ * @param {string} message
+ * @param {Object} callbacks - { onEvent, onError, onDone }
+ */
+export const streamMessage = async (message, callbacks) => {
+  if (!message?.trim()) {
+    callbacks?.onError?.("Message cannot be empty");
+    return;
+  }
+  await apiClient.streamPost(
+    API_CONFIG.ENDPOINTS.CHAT,
+    { message: message.trim() },
+    callbacks,
+  );
+};
+
+/**
+ * Envoyer un message audio via SSE (deux phases : text puis audio)
+ * @param {string} audioBase64 - Audio en base64
+ * @param {Object} callbacks - { onEvent, onError, onDone }
+ */
+export const streamAudioMessage = async (audioBase64, callbacks) => {
+  if (!audioBase64) {
+    callbacks?.onError?.("Audio data is required");
+    return;
+  }
+  await apiClient.streamPost(
+    API_CONFIG.ENDPOINTS.CHAT,
+    { audio: audioBase64 },
+    callbacks,
+  );
+};
+
+/**
  * Vérifier la santé du serveur
  * @returns {Promise}
  */
@@ -60,6 +94,8 @@ export const checkHealth = async () => {
 export const chatApi = {
   sendMessage,
   sendAudioMessage,
+  streamMessage,
+  streamAudioMessage,
   checkHealth,
 };
 
