@@ -12,7 +12,7 @@
 //   RETRY_DELAY: 1000, // 1 seconde
 // };
 export const API_CONFIG = {
-  BASE_URL: "backend-production-9c59.up.railway.app/api", //"https://backend-production-2d3fd.up.railway.app/api", //import.meta.env.VITE_API_URL || "http://localhost:3000/api","backend-production-9c59.up.railway.app/api",
+  BASE_URL: "https://backend-production-9c59.up.railway.app/api", //"https://backend-production-2d3fd.up.railway.app/api", //import.meta.env.VITE_API_URL || "http://localhost:3000/api","backend-production-9c59.up.railway.app/api",
   ENDPOINTS: {
     CHAT: "/chat",
     HEALTH: "/health",
